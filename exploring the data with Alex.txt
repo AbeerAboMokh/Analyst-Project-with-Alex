@@ -1,0 +1,91 @@
+SELECT `location`,`date` ,`total_cases` , `new_cases` ,`total_deaths` ,`population`
+FROM `coronavirus_deaths`
+ORDER by 1,2;
+
+#total cases vs total deaths
+
+SELECT `location`,`date`,`total_cases` ,`total_deaths` , (`total_deaths`/`total_cases`)*100 As Deaths_Percentage
+from coronavirus_deaths
+where location like '%states%'
+order by 1,2;
+
+#looking at total cases vs population 
+SELECT `location`,`date`,`total_cases` ,`population` , (`total_cases`/`population`)*100 As Cases_Percentage
+from coronavirus_deaths
+where location like '%Israel%'
+order by 1,2;
+
+#looking at countries with with highest infections rate compared to population
+
+SELECT `location` ,`population` , MAX(`total_cases`)  As highestInfectionCount ,MAX((`total_cases`/`population`))*100 As InfectionRate
+from coronavirus_deaths
+group by `location` ,`population`
+order by InfectionRate desc;
+
+
+#this is showing the countries with the highest death count per population
+
+SELECT `location`  , MAX(`total_deaths`) As Total_DeathCount 
+from coronavirus_deaths
+where continent is NOT null 
+group by `location`
+order by Total_DeathCount desc;
+
+#Lets break this down by continent 
+
+SELECT `continent` , MAX(`total_deaths`) As Total_DeathCount 
+from coronavirus_deaths
+where continent is NOT null 
+group by `continent`
+order by Total_DeathCount desc;
+
+#Global numbers 
+
+SELECT `date`, SUM(`total_cases` ) as totalCases, SUM(`total_deaths`) as totalDeaths,
+(SUM(`total_deaths`)/SUM(`total_cases` ))*100 as DeathPercentage
+from coronavirus_deaths
+WHERE continent is NOT null
+GROUP by `date`
+order by 1,2;
+
+
+#total population vs vaccination
+
+--(the query did not run!!)(loadeing a lot of time)
+SELECT cd.continent ,cd.`location` ,cd.date ,cd.population ,cv.new_vaccinations ,
+SUM(cv.new_vaccinations) over(PARTITION by location order by location,date)
+FROM `coronavirus_vaccinations` as cv join coronavirus_deaths as cd ON
+	cv.location=cd.location and cv.date=cd.date
+where cd.continent is not null
+
+#create view 
+
+create view PercentPeopleVaccinated as
+SELECT cd.continent ,cd.`location` ,cd.date ,cd.population ,cv.new_vaccinations ,
+SUM(cv.new_vaccinations) over(PARTITION by location order by location,date) as RollingPeopleVaccinated
+FROM `coronavirus_vaccinations` as cv join coronavirus_deaths as cd ON
+	cv.location=cd.location and cv.date=cd.date
+where cd.continent is not null;
+
+
+#Loading a lot of time why?
+select * from PercentPeopleVaccinated 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
