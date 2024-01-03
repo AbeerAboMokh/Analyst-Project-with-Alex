@@ -1,0 +1,100 @@
+--breaking out address into individuals columns(city,country,state)--
+
+SELECT `PropertyAddress`,
+Substring(`PropertyAddress` , 1 , position(',' IN `PropertyAddress`)-1) As Address ,
+Substring(`PropertyAddress` , position(',' IN `PropertyAddress`) +1 ,LENGTH(`PropertyAddress`)) As city 
+from nashville_housing_data_for_data_cleaning;
+
+alter table nashville_housing_data_for_data_cleaning
+Add PropertySplitCity nvarchar(255)
+
+alter table nashville_housing_data_for_data_cleaning
+Add PropertySplitAddress nvarchar(255)
+
+update nashville_housing_data_for_data_cleaning
+set PropertySplitAddress= Substring(`PropertyAddress` , 1 , position(',' IN `PropertyAddress`)-1)
+
+update nashville_housing_data_for_data_cleaning
+set PropertySplitCity = Substring(`PropertyAddress` , position(',' IN `PropertyAddress`) +1 ,LENGTH(`PropertyAddress`));
+
+
+--replace 'N' with No and 'Y' with Yes in column soldAsVacant --
+
+fist of all i check :
+
+select DISTINCT(SoldAsVacant) , count(SoldAsVacant)
+from nashville_housing_data_for_data_cleaning
+group by SoldAsVacant;
+
+select SoldAsVacant,
+CASE  SoldAsVacant
+when 'Y' Then 'Yes'
+when 'N' Then 'No'
+END as transformed_SoldAsVacant
+ from nashville_housing_data_for_data_cleaning
+
+
+UPDATE nashville_housing_data_for_data_cleaning
+set SoldAsVacant = 
+CASE  SoldAsVacant
+when 'Y' Then 'Yes'
+when 'N' Then 'No'
+END
+
+
+---Remove Duplicates---
+
+#Remove Duplicates
+
+with CTE_RowNumber As (
+SELECT *,
+ROW_NUMBER() over(PARTITION by `ParcelID` ,`PropertyAddress` ,`SaleDate` ,`SalePrice` order by `uniqueid`) row_num
+FROM nashville_housing_data_for_data_cleaning
+    )
+    
+select * 
+from CTE_RowNumber
+where row_num >1 
+
+
+#to remove the duplicates in MYSQL ,
+#In MySQL and MariaDB, the syntax is a bit different, and you typically use a subquery to achieve the same result. 
+
+DELETE
+from nashville_housing_data_for_data_cleaning
+WHERE uniqueid IN (
+    SELECT uniqueid 
+    from (
+    SELECT uniqueid ,  
+  	ROW_NUMBER() over(PARTITION by `ParcelID`,`SaleDate`,`SalePrice`,`PropertyAddress`) as row_num
+    from nashville_housing_data_for_data_cleaning
+     ) As CTE_ROWNUM   
+    WHERE row_num >1 
+);
+
+#can directly use a Common Table Expression (CTE) with the DELETE statement, making it convenient to identify and delete duplicate rows in a single query.
+#to remove duplicates in SQL_Server its okay to use CTE 
+
+SELECT *,
+ROW_NUMBER() over(PARTITION by `ParcelID` ,`PropertyAddress` ,`SaleDate` ,`SalePrice` order by `uniqueid`) as row_num
+FROM nashville_housing_data_for_data_cleaning
+    )
+    
+DELETE from CTE_RowNumber
+where row_num >1; 
+
+
+---drop unused columns--
+
+select * from FROM nashville_housing_data_for_data_cleaning
+
+alter table  nashville_housing_data_for_data_cleaning
+drop column `OwnerName`;
+
+#to check this:
+SELECT `OwnerName` from nashville_housing_data_for_data_cleaning
+#message : Unknown column 'OwnerName' in 'field list' :)
+
+
+
+
